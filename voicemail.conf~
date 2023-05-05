@@ -1,0 +1,15 @@
+[general]
+format = alaw ; Formats for writing Voicemail
+maxmsg = 100 ; Max number of messages per folder
+maxsecs = 180 ; Max length of a voicemail message in seconds
+maxsilence = 10 ; Seconds of silence before ending recording
+maxlogins = 3 ; Max number of failed login attempts
+
+[zonemessages]
+european = Europe/Copenhagen|'vm-received' a d b 'digits/at' HM	;Zona horaria y alocucion
+
+[vmphones]
+;mailbox => pin,name[,email[,short email[,options]]]
+100 => 0100,Rmm100
+101 => 0101,Rmm101
+102 => 0102,Rmm102

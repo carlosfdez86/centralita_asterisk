@@ -1,0 +1,160 @@
+[general]
+
+[phones]
+;exten => _10X,1,	 Set(valor=${DB(${family}/${EXTEN})})
+;same  => n,		 GoToIf($[${EXTEN}=900]?si:otra)
+      	 		 ;combruebo si es 
+;same  => n(otra),	 Set(i=100)
+;same  => n, 		 While($[${i}<110])
+;same  => n,		 GoToIf($[${EXTEN}={i}]:?si)
+;same  => n, 		 Set(i=$[${i}+1])
+;same  => n,   		 EndWhile
+			 ; La extensión no era una de las correctas
+;same  => n,       	 PlayBack(conf-errormenu)
+;same  => n,	 	 Hangup
+			 ; Es una de las extensiones correctas
+;same  => n(si),		 GoToIf($[valor=1]:?llamo)
+;same  => n, 		 PlayBack(do-not-disturb)
+;same  => n, 		 Hangup
+      	 		 ; llamo a la extensión pq no está en modo: No molestar
+;same  => n(llamo),	 Dial(PJSIP/${EXTEN},8,m)
+;same  => n,		 GoToIf($[${DIALSTATUS}=BUSY]?busy:unable_call)
+      	 		 ; unable_call --> no está disponible
+;same  => n(unable_call), VoiceMail(${EXTEN}@vmphones,u)
+;same  => n,		 Hangup
+      	 		 ; busy --> si se está hablando con otra persona
+;same  => n(busy),	 VoiceMail(${EXTEN}@vmphones,b)
+;same  => n,	 	 Hangup
+
+exten => _10X,1,	 Set(family=DND)
+same  => n, 		 GoToIf($[${DB(${family}/${EXTEN})}=1]?sigo:llamo)
+same  => n(sigo),	 PlayBack(do-not-disturb)
+same  => n,		 Hangup
+
+same  => n(llamo),	 Dial(PJSIP/${EXTEN},5,m)
+same  => n,		 GoToIf($[${DIALSTATUS}=BUSY]?busy:unable_call)
+same  => n(unable_call), VoiceMail(${EXTEN}@vmphones,u)
+same  => n,		 Hangup
+same  => n(busy),	 VoiceMail(${EXTEN}@vmphones,b)
+same  => n,		 Hangup
+
+
+exten => _.!,1,		 Answer
+same  => n,		 PlayBack(cannot-complete-as-dialed)
+same  => n,		 Hangup
+
+;exten => 600,1,Answer
+;same  =>     n,Playback(demo-echotest)
+;same  =>     n,Echo	;para salir app echo asterisco
+;same  =>     n,Playback(demo-echodone)
+;same  =>     n,Hangup
+
+;exten => 700,1,Answer(1000)
+;same  =>     n,Set(COUNT=1)
+;same  =>     n,While($[${COUNT}<=5])
+;same  =>     n,SayNumber(${COUNT})
+;same  =>     n,Verbose(${INC(COUNT)})
+;same  =>     n,EndWhile
+;same  =>     n,Hangup
+
+;exten => 701,1,Answer()
+;    same => n,Set(NUM=1)
+;    same => n,While($[${NUM} <= 10])
+;        same => n,Set(NUM=$[${NUM}+2])
+;        same => n,SayNumber(${NUM})
+;    same => n,EndWhile
+;    same => n,Hangup()
+
+;exten => 702,1,Answer()
+;    same = n, GoToIf($[${CALLERID(num)}<=101]?:si:no)
+;    same = n(si), SayNumber(${CALLERID(num)})
+;    same = n(no), Say
+
+;exten => 800,1,		   Answer()
+;    same => n,		   Set(family=DND)
+;    same => n,		   Set(key=${CALLERID(num)})
+;    same => n,		   Set(valor=${DB(${family}/${key})})
+;    same => n, 		   GoToIf($[${valor}=0]?:desactivar)
+    
+;    same => n, 		   Set(DB(${family}/${key})=1)
+;    same => n,		   Playback(enabled)
+;    same => n, 		   Hangup()
+;    
+;    same => n(desactivar), Set(DB(${family}/${key})=0)
+;    same => n,		   Playback(disabled)
+;    same => n, 		   Hangup()
+
+exten => 900,1,		   Answer()
+;    same =>  n,		   PlayBack(menu_extension_900)
+    same =>  n, 	   Read(NUMERO,menu_extension_900,1)  ;menu es el fichero que se va a reproducir. Número de 1 dígito
+    same =>  n,		   SayDigits(${NUMERO})
+    same =>  n, 	   GoToIf($[${NUMERO}=1]?uno:sigue)
+    same =>  n(sigue),	   GoToIf($[${NUMERO}=2]?dos:sigue_1)
+    same =>  n(sigue_1),   GoToIf($[${NUMERO}=3]?tres:sigue_2)
+    same =>  n(sigue_2),   GoToIf($[${NUMERO}=4]?cuatro:error)
+
+    ;OPCIÓN 1: Acceso a buzón de voz
+
+    same => n(uno),        VoiceMailMain(${CALLERID(num)}@vmphones)
+    same => n,		   Hangup()
+
+    ;OPCIÓN 2: Servicio no molestar
+    same => n(dos),        Set(family=DND)
+    same => n,		   Set(key=${CALLERID(num)})
+    same => n,		   Set(valor=${DB(${family}/${key})})
+    same => n,		   Verbose(${valor})
+    same => n, 		   GoToIf($[${valor}=0]?:desactivar)
+
+    same => n, 		   Set(DB(${family}/${key})=1)
+    same => n,		   Playback(enabled)
+    same => n, 		   Hangup()
+    
+    same => n(desactivar), Set(DB(${family}/${key})=0)
+    same => n,		   Playback(disabled)
+    same => n, 		   Hangup()
+
+    ;OPCION 3: Servicio IP
+    same => n(tres),       Set(address=${CHANNEL(pjsip,remote_addr)})
+    same => n,		   PlayBack(IP)
+    same => n,		   Set(IP=${CUT(address,:,1)})	;CUT(nombre,delimitador,numero del campo)
+    same => n, 		   SayAlpha(${IP})
+    same => n,		   PlayBack(port)
+    same => n,		   Set(PORT=${CUT(address,:,2)})
+    same => n,		   SayNumber(${PORT})
+    same => n,		   Hangup()
+
+    ;OPCION 4: Servicio currency converter
+    same => n(cuatro),     Set(API_KEY=661a2e71aac2ce5c207ed930c3f4f1c415c99700)
+    same => n, 		   Set(FECHA=${STRFTIME(${EPOCH},,%Y-%m-%d)})
+    same => n,		   Verbose(${FECHA})
+    same => n,		   Set(EUROS=EUR)
+    same => n,		   Set(DOLARES=USD)
+    same => n, 		   Read(OPCION,menu_cambio_divisas,1)
+    same => n,		   GoToIf($[${OPCION}=1]?usd_eur:otro)
+    same => n(otro),       GoToIf($[${OPCION}=2]?eur_usd:error)
+			   ; Cambio de USD a EUR:
+    same => n(usd_eur),    Read(CANTIDAD,seleccion_euros)
+    same => n,		   SayNumber(${CANTIDAD})
+    same => n,		   PlayBack(dolares)
+    same => n,		   Set(REQUEST_URL=https://api.getgeoapi.com/v2/currency/historical/${FECHA}?api_key=${API_KEY}&from=${DOLARES}&to=${EUROS}&amount=${CANTIDAD}&format=json)
+    same => n,		   Set(CURL_RESULT_JSON=${CURL(${REQUEST_URL})})
+    same => n,		   Set(CURL_RESULT=${JSON_DECODE(CURL_RESULT_JSON,rates.EUR.rate_for_amount)})
+    same => n,		   SayDigits(${CURL_RESULT})
+    same => n,		   PlayBack(euros)
+    same => n,		   Verbose(1, "EL resultado del cambio de ${DOLARES} a ${EUROS} es de ${CURL_RESULT} ${EUROS}")
+    same => n,		   Hangup
+    	    		   ; Cambio de EUR a USD:
+    same => n(eur_usd),    Read(CANTIDAD,seleccion_euros)
+    same => n,		   SayNumber(${CANTIDAD})
+    same => n,		   PlayBack(euros)
+    same => n,		   Set(REQUEST_URL=https://api.getgeoapi.com/v2/currency/historical/${FECHA}?api_key=${API_KEY}&from=${EUROS}&to=${DOLARES}&amount=${CANTIDAD}&format=json)
+    same => n,		   Set(CURL_RESULT_JSON=${CURL(${REQUEST_URL})})
+    same => n,		   Set(CURL_RESULT=${JSON_DECODE(CURL_RESULT_JSON,rates.USD.rate_for_amount)})
+    same => n,		   SayDigits(${CURL_RESULT})
+    same => n,		   PlayBack(dolares)
+    same => n,		   Verbose(1, "EL resultado del cambio de ${EUROS} a ${DOLARES} es de ${CURL_RESULT} ${DOLARES}")
+    same => n,		   Hangup
+    
+    ;ERROR
+    same =>  n(error),	   Playback(conf-errormenu)	;BUSCAR EL FICHERO
+    same =>  n,		   Hangup
